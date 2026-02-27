@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopwatch & Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab:hover {
+            transform: translateY(-2px);
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .display {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 30px 0;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .start {
+            background: #10b981;
+        }
+
+        .start:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .stop {
+            background: #ef4444;
+        }
+
+        .stop:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .reset {
+            background: #6b7280;
+        }
+
+        .reset:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .timer-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .timer-input input {
+            width: 70px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .timer-input label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('stopwatch')">Stopwatch</button>
+            <button class="tab" onclick="switchTab('timer')">Timer</button>
+        </div>
+
+        <!-- Stopwatch -->
+        <div id="stopwatch" class="content active">
+            <div class="display" id="stopwatch-display">00:00:00.00</div>
+            <div class="controls">
+                <button class="start" onclick="startStopwatch()">Start</button>
+                <button class="stop" onclick="stopStopwatch()">Stop</button>
+                <button class="reset" onclick="resetStopwatch()">Reset</button>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <div id="timer" class="content">
+            <div class="timer-input">
+                <label>
+                    <span>Hours</span>
+                    <input type="number" id="hours" min="0" max="23" value="0">
+                </label>
+                <label>
+                    <span>Minutes</span>
+                    <input type="number" id="minutes" min="0" max="59" value="0">
+                </label>
+                <label>
+                    <span>Seconds</span>
+                    <input type="number" id="seconds" min="0" max="59" value="10">
+                </label>
+            </div>
+            <div class="display" id="timer-display">00:00:10</div>
+            <div class="controls">
+                <button class="start" onclick="startTimer()">Start</button>
+                <button class="stop" onclick="stopTimer()">Stop</button>
+                <button class="reset" onclick="resetTimer()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Stopwatch variables
+        let stopwatchInterval = null;
+        let stopwatchTime = 0;
+        let stopwatchRunning = false;
+
+        // Timer variables
+        let timerInterval = null;
+        let timerTime = 0;
+        let timerRunning = false;
+
+        // Switch between tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+        }
+
+        // Format time for display
+        function formatTime(ms) {
+            let totalSeconds = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+            let centiseconds = Math.floor((ms % 1000) / 10);
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+        }
+
+        function formatTimerDisplay(seconds) {
+            let hours = Math.floor(seconds / 3600);
+            let minutes = Math.floor((seconds % 3600) / 60);
+            let secs = seconds % 60;
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // Stopwatch functions
+        function startStopwatch() {
+            if (!stopwatchRunning) {
+                stopwatchRunning = true;
+                let startTime = Date.now() - stopwatchTime;
+                
+                stopwatchInterval = setInterval(() => {
+                    stopwatchTime = Date.now() - startTime;
+                    document.getElementById('stopwatch-display').textContent = formatTime(stopwatchTime);
+                }, 10);
+            }
+        }
+
+        function stopStopwatch() {
+            if (stopwatchRunning) {
+                stopwatchRunning = false;
+                clearInterval(stopwatchInterval);
+            }
+        }
+
+        function resetStopwatch() {
+            stopStopwatch();
+            stopwatchTime = 0;
+            document.getElementById('stopwatch-display').textContent = '00:00:00.00';
+        }
+
+        // Timer functions
+        function startTimer() {
+            if (!timerRunning) {
+                if (timerTime === 0) {
+                    let hours = parseInt(document.getElementById('hours').value) || 0;
+                    let minutes = parseInt(document.getElementById('minutes').value) || 0;
+                    let seconds = parseInt(document.getElementById('seconds').value) || 0;
+                    timerTime = hours * 3600 + minutes * 60 + seconds;
+                }
+
+                if (timerTime > 0) {
+                    timerRunning = true;
+                    
+                    timerInterval = setInterval(() => {
+                        timerTime--;
+                        document.getElementById('timer-display').textContent = formatTimerDisplay(timerTime);
+
+                        if (timerTime <= 0) {
+                            stopTimer();
+                            alert('Timer finished!');
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        function stopTimer() {
+            if (timerRunning) {
+                timerRunning = false;
+                clearInterval(timerInterval);
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timerTime = 0;
+            let hours = parseInt(document.getElementById('hours').value) || 0;
+            let minutes = parseInt(document.getElementById('minutes').value) || 0;
+            let seconds = parseInt(document.getElementById('seconds').value) || 0;
+            let totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            document.getElementById('timer-display').textContent = formatTimerDisplay(totalSeconds);
+        }
+
+        // Update timer display when inputs change
+        document.getElementById('hours').addEventListener('input', resetTimer);
+        document.getElementById('minutes').addEventListener('input', resetTimer);
+        document.getElementById('seconds').addEventListener('input', resetTimer);
+    </script>
+</body>
+</html>
